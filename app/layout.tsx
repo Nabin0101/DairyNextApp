@@ -5,13 +5,14 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import Sidebar from "@/components/sidebar"
 import Header from "@/components/header"
+import { ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Dairy Management System",
   description: "A comprehensive dairy management system",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -30,6 +31,7 @@ export default function RootLayout({
               <main className="flex-1 overflow-auto bg-[#a7c7da] p-4">{children}</main>
             </div>
           </div>
+          <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
         </ThemeProvider>
       </body>
     </html>

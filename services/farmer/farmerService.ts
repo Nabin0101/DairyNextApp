@@ -1,4 +1,5 @@
-import API_BASE_URL from '../lib/apiconfig';
+import API_BASE_URL from  '@/lib/apiconfig'
+import { apiFetch } from '@/lib/httpClient'
 
 export interface Farmer {
   id: number
@@ -28,30 +29,19 @@ interface FetchFarmersResult {
 }
 
 export interface CreateFarmerParams {
-name: string
-phone: string
+fullName: string
+phoneNumber: string
 address: string
 email: string
 }
 
 
-export async function createFarmer(data: CreateFarmerParams): Promise<boolean> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/CmsFarmer/CreateFarmer`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    })
-
-    if (!res.ok) throw new Error('Failed to create farmer')
-
-    return true
-  } catch (error) {
-    console.error('Create farmer failed:', error)
-    return false
-  }
+export async function createFarmer(data: CreateFarmerParams): Promise<any> {
+  return await apiFetch(`${API_BASE_URL}/CmsFarmer/CreateFarmer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 }
 
 
@@ -122,3 +112,8 @@ export async function deleteFarmer(id: number): Promise<boolean> {
     return false
   }
 }
+
+
+
+
+
