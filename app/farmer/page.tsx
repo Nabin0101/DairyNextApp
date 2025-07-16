@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { Plus, Search, Filter, MoreHorizontal, FileDown, Printer, ChevronsUpDown,ArrowUp,ArrowDown, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Plus, Search, Filter, MoreHorizontal, FileDown, Printer, ChevronsUpDown, ArrowUp, ArrowDown, X, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
-import { fetchFarmers } from "@/services/farmer/farmerService"
+import { fetchFarmers, updateFarmer, deleteFarmer } from "@/services/farmer/farmerService"
+import { toast } from "react-toastify"
 
-// Define column structure
 const columns = [
   { id: "sn", label: "S.N", sortable: false, filterable: false },
   { id: "fullName", label: "Name", sortable: true, filterable: true },
@@ -22,7 +24,7 @@ const columns = [
 ];
 
 export default function FarmerPage() {
-  // State management
+  // Table state
   const [searchTerm, setSearchTerm] = useState("");
   const [farmers, setFarmers] = useState<any[]>([]);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -34,6 +36,15 @@ export default function FarmerPage() {
   const [loading, setLoading] = useState(true);
   const [filterPopoverOpen, setFilterPopoverOpen] = useState<Record<string, boolean>>({});
   const [tempFilterValue, setTempFilterValue] = useState<Record<string, string>>({});
+
+  // Modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedFarmer, setSelectedFarmer] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ id: "", fullName: "", address: "", email: "" });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Build filter string for API
   const buildFilterString = (filters: Record<string, string>): string => {
@@ -49,10 +60,9 @@ export default function FarmerPage() {
     return sortDirection === "desc" ? `-${sortField}` : sortField;
   };
 
-  // Handle sorting
+  // Table handlers
   const handleSort = (field: string, direction: "asc" | "desc") => {
     if (sortField === field && sortDirection === direction) {
-      // Clicked the same sort again, clear it
       setSortField("");
       setSortDirection("");
     } else {
@@ -62,20 +72,17 @@ export default function FarmerPage() {
     setPageNumber(1);
   };
 
-  // Open filter popover for a column
   const openFilterPopover = (columnId: string, currentValue: string) => {
     setFilterPopoverOpen(prev => ({ ...prev, [columnId]: true }));
     setTempFilterValue(prev => ({ ...prev, [columnId]: currentValue }));
   };
 
-  // Apply filter for a column
   const applyFilter = (columnId: string) => {
     setColumnFilters(prev => ({ ...prev, [columnId]: tempFilterValue[columnId] || "" }));
     setFilterPopoverOpen(prev => ({ ...prev, [columnId]: false }));
     setPageNumber(1);
   };
 
-  // Clear filter for a column
   const clearFilter = (columnId: string) => {
     setTempFilterValue(prev => ({ ...prev, [columnId]: "" }));
     setColumnFilters(prev => {
@@ -86,14 +93,13 @@ export default function FarmerPage() {
     setPageNumber(1);
   };
 
-  // Clear all filters
   const clearAllFilters = () => {
     setColumnFilters({});
     setTempFilterValue({});
     setPageNumber(1);
   };
 
-  // Load farmers data
+  // Data loading
   const loadFarmers = async () => {
     setLoading(true);
     try {
@@ -115,21 +121,172 @@ export default function FarmerPage() {
     }
   };
 
-  // Load data when dependencies change
   useEffect(() => {
     loadFarmers();
   }, [searchTerm, columnFilters, sortField, sortDirection, pageNumber, pageSize]);
 
-  // Calculate pagination values
+  // Pagination
   const totalPages = Math.ceil(totalCount / pageSize);
   const startItem = (pageNumber - 1) * pageSize + 1;
   const endItem = Math.min(pageNumber * pageSize, totalCount);
 
-  // Filter active state
   const hasActiveFilters = Object.values(columnFilters).some(val => val.trim() !== "") || searchTerm.trim() !== "";
+
+  // Edit Modal Handlers
+  const openEditModal = (farmer: any) => {
+    setSelectedFarmer(farmer);
+    setEditForm({
+      id: farmer.id,
+      fullName: farmer.fullName,
+      address: farmer.address,
+      email: farmer.email
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      await updateFarmer(editForm);
+      toast.success("Farmer updated successfully!")
+      setEditModalOpen(false);
+      loadFarmers();
+    } catch (err) {
+      alert("Failed to update farmer.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // View Modal Handler
+  const openViewModal = (farmer: any) => {
+    setSelectedFarmer(farmer);
+    setViewModalOpen(true);
+  };
+
+  // Delete Handler
+  const openDeleteDialog = (farmer: any) => {
+    setSelectedFarmer(farmer);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedFarmer) return;
+    setDeleteLoading(true);
+    try {
+      await deleteFarmer(selectedFarmer.id);
+      setDeleteDialogOpen(false);
+      loadFarmers();
+    } catch (err) {
+      alert("Failed to delete farmer.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
+      {/* Edit Farmer Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Farmer</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={editForm.fullName}
+                onChange={handleEditChange}
+                placeholder="Full Name"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                name="address"
+                value={editForm.address}
+                onChange={handleEditChange}
+                placeholder="Address"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={editForm.email}
+                onChange={handleEditChange}
+                placeholder="Email"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editLoading}>
+                {editLoading ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Farmer Details</DialogTitle>
+          </DialogHeader>
+          {selectedFarmer && (
+            <div className="space-y-2">
+              <div><b>Full Name:</b> {selectedFarmer.fullName}</div>
+              <div><b>Phone Number:</b> {selectedFarmer.phoneNumber}</div>
+              <div><b>Address:</b> {selectedFarmer.address}</div>
+              <div><b>Email:</b> {selectedFarmer.email}</div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setViewModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Farmer</DialogTitle>
+          </DialogHeader>
+          <div>
+            Are you sure you want to delete <b>{selectedFarmer?.fullName}</b>?
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Main Table Card */}
       <Card className="bg-white">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-xl">Farmers</CardTitle>
@@ -183,31 +340,24 @@ export default function FarmerPage() {
                                   className="h-8 w-8 p-0"
                                   onClick={() => {
                                     if (sortField !== column.id) {
-                                      // First click - set to asc
                                       setSortField(column.id);
                                       setSortDirection("asc");
                                     } else if (sortDirection === "asc") {
-                                      // Second click - set to desc
                                       setSortDirection("desc");
                                     } else if (sortDirection === "desc") {
-                                      // Third click - back to asc
                                       setSortDirection("asc");
                                     }
                                     setPageNumber(1);
                                   }}
                                 >
                                   {sortField !== column.id ? (
-                                    // Initial state - no sort
                                     <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
                                   ) : sortDirection === "asc" ? (
-                                    // Ascending sort
                                     <ArrowUp className="h-4 w-4 text-blue-500" />
                                   ) : (
-                                    // Descending sort
                                     <ArrowDown className="h-4 w-4 text-blue-500" />
                                   )}
                              </Button>
-            
                             </div>
                           )}
                           {column.filterable && (
@@ -299,13 +449,15 @@ export default function FarmerPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Link href={`/farmer/edit/${farmer.id}`} className="w-full">
-                                Edit
-                              </Link>
+                            <DropdownMenuItem onClick={() => openEditModal(farmer)}>
+                              Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openViewModal(farmer)}>
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(farmer)}>
+                              Delete
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

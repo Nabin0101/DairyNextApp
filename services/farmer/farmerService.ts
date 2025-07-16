@@ -8,6 +8,12 @@ export interface Farmer {
   address: string
   email: string
 }
+export interface FarmerDetails {
+  id: number
+  fullName: string
+  address: string
+  email: string
+}
 
 export interface Pagination {
   total: number
@@ -83,21 +89,36 @@ export async function fetchFarmers(params: GetAllFarmersParams = {}): Promise<Fe
 
 }
 
-export async function updateFarmer(farmer: Farmer): Promise<boolean> {
+export async function getFarmerById(id:string): Promise<FarmerDetails> {
   try {
+    const res = await fetch(`${API_BASE_URL}/CmsFarmer/GetFarmerById`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!res.ok) throw new Error(`Failed to retrieve farmer details.`);
+
+    const data = await res.json();
+    return data.data; 
+  } catch (error) {
+    console.error('Error getting farmer details:', error);
+    throw error;
+  }
+}
+
+export async function updateFarmer(farmer :any) {
     const res = await fetch(`${API_BASE_URL}/CmsFarmer/UpdateFarmer`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(farmer),
     })
 
-    if (!res.ok) throw new Error(`Failed to update farmer.`)
-    return true
-  } catch (error) {
-    console.error('Error updating farmer:', error)
-    return false
+    if (!res.ok){
+       throw new Error(`Failed to update farmer.`)
+    }
+    return await res.json();
+  
   }
-}
 
 export async function deleteFarmer(id: number): Promise<boolean> {
   try {
