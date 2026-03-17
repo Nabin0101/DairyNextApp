@@ -36,6 +36,7 @@ export default function FarmerPage() {
   const [loading, setLoading] = useState(true);
   const [filterPopoverOpen, setFilterPopoverOpen] = useState<Record<string, boolean>>({});
   const [tempFilterValue, setTempFilterValue] = useState<Record<string, string>>({});
+  const [searchInput, setSearchInput] = useState(""); // Add this near your other useState hooks
 
   // Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -182,6 +183,7 @@ export default function FarmerPage() {
       await deleteFarmer(selectedFarmer.id);
       setDeleteDialogOpen(false);
       loadFarmers();
+      toast.success("Farmer deleted successfully!")
     } catch (err) {
       alert("Failed to delete farmer.");
     } finally {
@@ -299,17 +301,31 @@ export default function FarmerPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search farmers..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
+            <div className="flex items-center w-full max-w-sm gap-0">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search farmers..."
+                  className="pl-8 pr-2 py-2 w-full max-w-[160px]"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setSearchTerm(searchInput);
+                      setPageNumber(1);
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                className="!ml-1"
+                onClick={() => {
+                  setSearchTerm(searchInput);
                   setPageNumber(1);
                 }}
-              />
+              >
+                Search
+              </Button>
             </div>
             <div className="flex gap-2">
               {hasActiveFilters && (

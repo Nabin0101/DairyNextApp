@@ -10,7 +10,6 @@ export interface MilkRate {
 
 export interface Pagination {
   total: number;
-  current: number;
   pageSize: number;
   totalPage: number;
 }
@@ -72,18 +71,30 @@ export async function fetchMilkRates(params: GetAllMilkRatesParams = {}): Promis
   }
 }
 
-export async function updateMilkRate(data: UpdateMilkRateParams): Promise<void> {
-  await apiFetch<void>(`${API_BASE_URL}/CmsMilkRate/UpdateMilkRate`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+export async function updateMilkRate(data: UpdateMilkRateParams) {
+  const res = await fetch(`${API_BASE_URL}/CmsMilkRate/UpdateMilkRate`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
-  });
+  })
+
+  if (!res.ok){
+     throw new Error(`Failed to update milk rate.`)
+  }
+  return await res.json();
+
 }
 
-export async function deleteMilkRate(id: number): Promise<void> {
-  await apiFetch<void>(`${API_BASE_URL}/CmsMilkRate/DeleteMilkRate/${id}`, {
-    method: "DELETE",
-  });
+export async function deleteMilkRate(id: number): Promise<boolean> {
+try {
+  const res = await fetch(`${API_BASE_URL}/CmsMilkRate/DeleteMilkRate/${id}`, {
+    method: 'DELETE',
+  })
+
+  if (!res.ok) throw new Error(`Failed to delete milk rate.`)
+  return true
+} catch (error) {
+  console.error('Error deleting milk rate:', error)
+  return false
+}
 }
